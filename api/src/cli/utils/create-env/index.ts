@@ -32,7 +32,7 @@ export default async function createEnv(
 			SECRET: nanoid(32),
 		},
 		database: {
-			DB_CLIENT: client,
+			DB_CLIENT: client === 'mysql2' ? 'mysql' : client, // for backward compatibility
 		},
 	};
 

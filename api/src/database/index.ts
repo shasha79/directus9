@@ -60,6 +60,20 @@ export default function getDatabase(): Knex {
 			}
 
 			break;
+		case 'mysql':
+			if (!env['DB_SOCKET_PATH']) {
+				requiredEnvVars.push('DB_HOST', 'DB_PORT', 'DB_DATABASE', 'DB_USER', 'DB_PASSWORD');
+			} else {
+				requiredEnvVars.push('DB_DATABASE', 'DB_USER', 'DB_PASSWORD', 'DB_SOCKET_PATH');
+			}
+			break;
+		case 'mysql2':
+			if (!env['DB_SOCKET_PATH']) {
+				requiredEnvVars.push('DB_HOST', 'DB_PORT', 'DB_DATABASE', 'DB_USER', 'DB_PASSWORD');
+			} else {
+				requiredEnvVars.push('DB_DATABASE', 'DB_USER', 'DB_PASSWORD', 'DB_SOCKET_PATH');
+			}
+			break;
 		case 'mssql':
 			if (!env['DB_TYPE'] || env['DB_TYPE'] === 'default') {
 				requiredEnvVars.push('DB_HOST', 'DB_PORT', 'DB_DATABASE', 'DB_USER', 'DB_PASSWORD');
@@ -119,19 +133,10 @@ export default function getDatabase(): Knex {
 	}
 
 	if (client === 'mysql') {
-		poolConfig.afterCreate = (conn: any, callback: any) => {
-			logger.trace('Retrieving database version');
+		// Remove the conflicting `filename` option, defined by default in the Docker Image
+		//if (isObject(knexConfig.connection)) delete knexConfig.connection['filename'];
 
-			conn.query('SELECT @@version AS version;', (error: any, results: any) => {
-				if (error) {
-					callback(error, null);
-					return;
-				}
-
-				databaseVersion = results[0]?.version || results[0]?.['@@version'];
-				callback(null, conn);
-			});
-		};
+		Object.assign(knexConfig, { client: 'mysql2' });
 	}
 
 	if (client === 'mssql') {
@@ -217,6 +222,7 @@ export function getDatabaseClient(database?: Knex): DatabaseClient {
 
 	switch (database.client.constructor.name) {
 		case 'Client_MySQL':
+		case 'Client_MySQL2':
 			return 'mysql';
 		case 'Client_PG':
 			return 'postgres';
