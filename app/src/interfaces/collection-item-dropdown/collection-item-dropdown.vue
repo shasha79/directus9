@@ -13,6 +13,13 @@
 					<v-icon v-tooltip="t('deselect')" name="close" class="deselect" @click.stop="$emit('input', undefined)" />
 				</template>
 				<template v-else>
+					<v-icon
+						v-if="enableCreate && createAllowed && !disabled"
+						v-tooltip="t('create_item')"
+						class="add"
+						name="add"
+						@click.stop="createDrawerOpen = true"
+					/>
 					<v-icon class="expand" name="expand_more" />
 				</template>
 			</template>
@@ -26,6 +33,14 @@
 			@input="onSelection"
 			@update:active="selectDrawerOpen = false"
 		/>
+
+		<drawer-item
+			v-if="enableCreate && createAllowed && !disabled"
+			v-model:active="createDrawerOpen"
+			:collection="selectedCollection"
+			primary-key="+"
+			@input="onCreateDrawerInput"
+		/>
 	</div>
 </template>
 
@@ -34,8 +49,10 @@ import api from '@/api';
 import { useCollectionsStore } from '@/stores/collections';
 import { useFieldsStore } from '@/stores/fields';
 import { adjustFieldsForDisplays } from '@/utils/adjust-fields-for-displays';
+import { isAllowed } from '@/utils/is-allowed';
 import { unexpectedError } from '@/utils/unexpected-error';
 import DrawerCollection from '@/views/private/components/drawer-collection.vue';
+import DrawerItem from '@/views/private/components/drawer-item.vue';
 import { Filter } from '@wbce-d9/types';
 import { getEndpoint, getFieldsFromTemplate } from '@wbce-d9/utils';
 import { computed, ref, toRefs, unref, watch } from 'vue';
@@ -53,12 +70,14 @@ const props = withDefaults(
 		template?: string | null;
 		disabled?: boolean;
 		filter?: Filter | null;
+		enableCreate?: boolean;
 	}>(),
 	{
 		value: () => ({ key: null, collection: '' }),
 		disabled: false,
 		template: () => null,
 		filter: () => null,
+		enableCreate: true,
 	}
 );
 
@@ -73,6 +92,7 @@ const fieldStore = useFieldsStore();
 
 const loading = ref(false);
 const selectDrawerOpen = ref(false);
+const createDrawerOpen = ref(false);
 const displayItem = ref<Record<string, any> | null>(null);
 
 const value = computed({
@@ -99,6 +119,11 @@ const displayTemplate = computed(() => {
 const requiredFields = computed(() => {
 	if (!displayTemplate.value || !unref(selectedCollection)) return [];
 	return adjustFieldsForDisplays(getFieldsFromTemplate(displayTemplate.value), unref(selectedCollection));
+});
+
+const createAllowed = computed(() => {
+	if (!unref(selectedCollection)) return false;
+	return isAllowed(unref(selectedCollection), 'create', null);
 });
 
 watch(value, getDisplayItem, { immediate: true });
@@ -136,10 +161,37 @@ function onSelection(selectedIds: (number | string)[]) {
 	selectDrawerOpen.value = false;
 	value.value = { key: Array.isArray(selectedIds) ? selectedIds[0] : null, collection: unref(selectedCollection) };
 }
+
+async function onCreateDrawerInput(edits: Record<string, any>) {
+	if (!unref(selectedCollection) || !primaryKey.value) return;
+
+	try {
+		loading.value = true;
+
+		const response = await api.post(getEndpoint(unref(selectedCollection)), edits);
+		const newPk = response.data.data?.[primaryKey.value];
+
+		if (newPk !== undefined && newPk !== null) {
+			value.value = { key: newPk, collection: unref(selectedCollection) };
+		}
+	} catch (err: any) {
+		unexpectedError(err);
+	} finally {
+		loading.value = false;
+	}
+}
 </script>
 
 <style lang="scss" scoped>
 .preview {
 	flex-grow: 1;
+}
+
+.add:hover {
+	--v-icon-color: var(--primary);
+}
+
+.deselect:hover {
+	--v-icon-color: var(--danger);
 }
 </style>

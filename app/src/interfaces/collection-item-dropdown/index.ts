@@ -49,6 +49,21 @@ export default defineInterface({
 				},
 			},
 		},
+		{
+			field: 'enableCreate',
+			name: '$t:create_item',
+			type: 'boolean',
+			meta: {
+				interface: 'boolean',
+				options: {
+					label: '$t:enable_create_button',
+				},
+				width: 'half',
+			},
+			schema: {
+				default_value: true,
+			},
+		},
 	],
 	preview: PreviewSVG,
 });

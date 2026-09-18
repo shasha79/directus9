@@ -63,8 +63,8 @@ export class AssetsService {
 		const file = (await this.knex.select('*').from('directus_files').where({ id }).first()) as File;
 
 		if (!file) throw new ForbiddenException();
-
 		const exists = await storage.location(file.storage).exists(file.filename_disk);
+		logger.debug(`Check if file ${file.filename_disk} exists in ${file.storage} : ${exists}`);
 
 		if (!exists) throw new ForbiddenException();
 
