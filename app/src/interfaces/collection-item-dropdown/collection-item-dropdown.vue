@@ -10,7 +10,14 @@
 
 			<template #append>
 				<template v-if="displayItem">
-					<v-icon v-tooltip="t('deselect')" name="close" class="deselect" @click.stop="$emit('input', undefined)" />
+					<v-icon v-tooltip="t('edit')" name="open_in_new" class="edit" @click.stop="editDrawerOpen = true" />
+					<v-icon
+						v-if="!disabled"
+						v-tooltip="t('deselect')"
+						name="close"
+						class="deselect"
+						@click.stop="$emit('input', undefined)"
+					/>
 				</template>
 				<template v-else>
 					<v-icon
@@ -41,6 +48,15 @@
 			primary-key="+"
 			@input="onCreateDrawerInput"
 		/>
+
+		<drawer-item
+			v-if="displayItem && value?.key != null"
+			v-model:active="editDrawerOpen"
+			:collection="selectedCollection"
+			:primary-key="value.key"
+			:disabled="disabled || !updateAllowed"
+			@input="onEditDrawerInput"
+		/>
 	</div>
 </template>
 
@@ -48,6 +64,7 @@
 import api from '@/api';
 import { useCollectionsStore } from '@/stores/collections';
 import { useFieldsStore } from '@/stores/fields';
+import { usePermissionsStore } from '@/stores/permissions';
 import { adjustFieldsForDisplays } from '@/utils/adjust-fields-for-displays';
 import { isAllowed } from '@/utils/is-allowed';
 import { unexpectedError } from '@/utils/unexpected-error';
@@ -89,10 +106,12 @@ const { selectedCollection, template } = toRefs(props);
 
 const collectionsStore = useCollectionsStore();
 const fieldStore = useFieldsStore();
+const permissionsStore = usePermissionsStore();
 
 const loading = ref(false);
 const selectDrawerOpen = ref(false);
 const createDrawerOpen = ref(false);
+const editDrawerOpen = ref(false);
 const displayItem = ref<Record<string, any> | null>(null);
 
 const value = computed({
@@ -124,6 +143,11 @@ const requiredFields = computed(() => {
 const createAllowed = computed(() => {
 	if (!unref(selectedCollection)) return false;
 	return isAllowed(unref(selectedCollection), 'create', null);
+});
+
+const updateAllowed = computed(() => {
+	if (!unref(selectedCollection)) return false;
+	return permissionsStore.hasPermission(unref(selectedCollection), 'update');
 });
 
 watch(value, getDisplayItem, { immediate: true });
@@ -180,11 +204,34 @@ async function onCreateDrawerInput(edits: Record<string, any>) {
 		loading.value = false;
 	}
 }
+
+async function onEditDrawerInput(edits: Record<string, any>) {
+	if (props.disabled || !updateAllowed.value || value.value?.key == null) return;
+
+	try {
+		loading.value = true;
+
+		await api.patch(`${getEndpoint(unref(selectedCollection))}/${encodeURIComponent(value.value.key)}`, edits);
+		await getDisplayItem();
+	} catch (err: any) {
+		unexpectedError(err);
+	} finally {
+		loading.value = false;
+	}
+}
 </script>
 
 <style lang="scss" scoped>
 .preview {
 	flex-grow: 1;
+}
+
+.edit {
+	margin-right: 4px;
+
+	&:hover {
+		--v-icon-color: var(--foreground-normal);
+	}
 }
 
 .add:hover {
