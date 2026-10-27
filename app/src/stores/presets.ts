@@ -121,6 +121,8 @@ export const usePresetsStore = defineStore({
 	id: 'presetsStore',
 	state: () => ({
 		collectionPresets: [] as Preset[],
+		// Related-item selection drawers retain their search without changing collection presets.
+		collectionDrawerSearch: {} as Record<string, Partial<Pick<Preset, 'filter' | 'search'>>>,
 	}),
 	getters: {
 		bookmarks(): Preset[] {

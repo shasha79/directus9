@@ -2,7 +2,7 @@ import { usePresetsStore } from '@/stores/presets';
 import { useUserStore } from '@/stores/user';
 import { translate } from '@/utils/translate-literal';
 import { Filter, Preset } from '@wbce-d9/types';
-import { assign, debounce, isEqual } from 'lodash';
+import { assign, cloneDeep, debounce, isEqual } from 'lodash';
 import { computed, ComputedRef, ref, Ref, watch } from 'vue';
 
 type UsablePreset = {
@@ -87,6 +87,14 @@ export function usePreset(
 
 	function updatePreset(preset: Partial<Preset>, immediate?: boolean) {
 		localPreset.value = assign({}, localPreset.value, preset);
+
+		if (temporary) {
+			const searchState = presetsStore.collectionDrawerSearch[collection.value] ?? {};
+			if ('filter' in preset) searchState.filter = cloneDeep(preset.filter);
+			if ('search' in preset) searchState.search = preset.search;
+			presetsStore.collectionDrawerSearch[collection.value] = searchState;
+		}
+
 		immediate ? savePreset() : handleChanges();
 	}
 
@@ -195,6 +203,10 @@ export function usePreset(
 			assign(preset, presetsStore.getPresetForCollection(collection.value));
 		} else if (bookmarkExists.value) {
 			assign(preset, presetsStore.getBookmark(Number(bookmark.value)));
+		}
+
+		if (temporary) {
+			assign(preset, cloneDeep(presetsStore.collectionDrawerSearch[collection.value]));
 		}
 
 		localPreset.value = preset;
