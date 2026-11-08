@@ -23,6 +23,34 @@ describe('temporary collection presets', () => {
 		setActivePinia(createPinia());
 	});
 
+	it.each([{ sort: ['title'] }, { sort: ['-title'] }, { sort: [] }])(
+		'retains sort $sort when a drawer is recreated',
+		({ sort }) => {
+			const first = openDrawer();
+			first.preset.layoutQuery.value = { sort, page: 3 };
+			first.close();
+
+			const next = openDrawer();
+			expect(next.preset.layoutQuery.value.sort).toEqual(sort);
+			expect(next.preset.layoutQuery.value.page).not.toBe(3);
+			expect(usePresetsStore().getPresetForCollection('related_items').layout_query).toBeNull();
+			next.close();
+		}
+	);
+
+	it('isolates drawer sorting by collection and resets it on logout', async () => {
+		const first = openDrawer();
+		first.preset.layoutQuery.value = { sort: ['-title'] };
+		first.close();
+		const other = openDrawer(ref('other_items'));
+		expect(other.preset.layoutQuery.value?.sort).toBeUndefined();
+		other.close();
+		await usePresetsStore().dehydrate();
+		const next = openDrawer();
+		expect(next.preset.layoutQuery.value?.sort).toBeUndefined();
+		next.close();
+	});
+
 	it('retains the filter and search when a drawer is recreated for another item', () => {
 		const first = openDrawer();
 		const filter = { title: { _contains: 'archive' } };

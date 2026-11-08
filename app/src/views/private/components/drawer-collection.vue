@@ -102,7 +102,19 @@ export default defineComponent({
 		// having use-preset auto-save the values
 		const localLayout = ref(layout.value || 'tabular');
 		const localOptions = ref(layoutOptions.value);
-		const localQuery = ref(layoutQuery.value);
+		const localQuery = ref<Record<string, any>>({ ...layoutQuery.value, page: 1 });
+
+		watch(internalActive, (active) => {
+			if (active) localQuery.value = { ...localQuery.value, page: 1 };
+		});
+
+		watch(
+			() => localQuery.value?.sort,
+			(sort) => {
+				if (Array.isArray(sort)) layoutQuery.value = { ...layoutQuery.value, sort };
+			},
+			{ deep: true }
+		);
 
 		const currentLayout = useExtension('layout', localLayout);
 

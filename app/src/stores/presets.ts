@@ -123,6 +123,7 @@ export const usePresetsStore = defineStore({
 		collectionPresets: [] as Preset[],
 		// Related-item selection drawers retain their search without changing collection presets.
 		collectionDrawerSearch: {} as Record<string, Partial<Pick<Preset, 'filter' | 'search'>>>,
+		collectionDrawerSort: {} as Record<string, Record<string, string[]>>,
 	}),
 	getters: {
 		bookmarks(): Preset[] {

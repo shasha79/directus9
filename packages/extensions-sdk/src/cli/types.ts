@@ -6,6 +6,7 @@ export type LanguageShort = 'js' | 'ts';
 
 export type Config = {
 	plugins?: Plugin[];
+	onwarn?: RollupOptions['onwarn'];
 };
 
 export type RollupConfig = { rollupOptions: RollupOptions; rollupOutputOptions: RollupOutputOptions };

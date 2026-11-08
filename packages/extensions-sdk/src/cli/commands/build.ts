@@ -261,10 +261,11 @@ async function buildAppOrApiExtension({
 
 	const config = await loadConfig();
 	const plugins = config.plugins ?? [];
+	const onwarn = config.onwarn;
 
 	const mode = isIn(type, APP_EXTENSION_TYPES) ? 'browser' : 'node';
 
-	const rollupOptions = getRollupOptions({ mode, input, language, sourcemap, minify, plugins });
+	const rollupOptions = getRollupOptions({ mode, input, language, sourcemap, minify, plugins, onwarn });
 	const rollupOutputOptions = getRollupOutputOptions({ mode, output, sourcemap });
 
 	if (watch) {
@@ -326,6 +327,7 @@ async function buildHybridExtension({
 
 	const config = await loadConfig();
 	const plugins = config.plugins ?? [];
+	const onwarn = config.onwarn;
 
 	const rollupOptionsApp = getRollupOptions({
 		mode: 'browser',
@@ -334,6 +336,7 @@ async function buildHybridExtension({
 		sourcemap,
 		minify,
 		plugins,
+		onwarn,
 	});
 
 	const rollupOptionsApi = getRollupOptions({
@@ -343,6 +346,7 @@ async function buildHybridExtension({
 		sourcemap,
 		minify,
 		plugins,
+		onwarn,
 	});
 
 	const rollupOutputOptionsApp = getRollupOutputOptions({ mode: 'browser', output: outputApp, sourcemap });
@@ -443,6 +447,7 @@ async function buildBundleExtension({
 
 	const config = await loadConfig();
 	const plugins = config.plugins ?? [];
+	const onwarn = config.onwarn;
 
 	const entrypointApp = generateBundleEntrypoint('app', entries);
 	const entrypointApi = generateBundleEntrypoint('api', entries);
@@ -454,6 +459,7 @@ async function buildBundleExtension({
 		sourcemap,
 		minify,
 		plugins,
+		onwarn,
 	});
 
 	const rollupOptionsApi = getRollupOptions({
@@ -463,6 +469,7 @@ async function buildBundleExtension({
 		sourcemap,
 		minify,
 		plugins,
+		onwarn,
 	});
 
 	const rollupOutputOptionsApp = getRollupOutputOptions({ mode: 'browser', output: outputApp, sourcemap });
@@ -572,6 +579,7 @@ function getRollupOptions({
 	sourcemap,
 	minify,
 	plugins,
+	onwarn,
 }: {
 	mode: RollupMode;
 	input: string | Record<string, string>;
@@ -579,10 +587,11 @@ function getRollupOptions({
 	sourcemap: boolean;
 	minify: boolean;
 	plugins: Plugin[];
+	onwarn?: RollupOptions['onwarn'];
 }): RollupOptions {
 	const languages = Array.isArray(language) ? language : [language];
 
-	return {
+	const options: RollupOptions = {
 		input: typeof input !== 'string' ? 'entry' : input,
 		external: mode === 'browser' ? APP_SHARED_DEPS : API_SHARED_DEPS,
 		plugins: [
@@ -603,6 +612,12 @@ function getRollupOptions({
 			minify ? terser() : null,
 		],
 	};
+
+	if (onwarn !== undefined) {
+		options.onwarn = onwarn;
+	}
+
+	return options;
 }
 
 function getRollupOutputOptions({

@@ -121,9 +121,17 @@ export function usePreset(
 
 	const layoutQuery = computed<Record<string, any>>({
 		get() {
-			return localPreset.value.layout_query?.[layout.value] || null;
+			const query = localPreset.value.layout_query?.[layout.value] || null;
+			const sort = temporary ? presetsStore.collectionDrawerSort[collection.value]?.[layout.value] : undefined;
+			return sort ? { ...query, sort: cloneDeep(sort) } : query;
 		},
 		set(query) {
+			if (temporary && Array.isArray(query?.sort)) {
+				const sorts = presetsStore.collectionDrawerSort[collection.value] ?? {};
+				sorts[layout.value] = cloneDeep(query.sort);
+				presetsStore.collectionDrawerSort[collection.value] = sorts;
+			}
+
 			const { layout_query } = localPreset.value;
 			updatePreset({ layout_query: assign({}, layout_query, { [layout.value]: query }) });
 		},
